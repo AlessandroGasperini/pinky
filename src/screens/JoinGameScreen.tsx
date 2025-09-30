@@ -62,7 +62,7 @@ export default function JoinGameScreen() {
     >
       <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.title}>Join Game</Text>
+          <Text style={styles.title}>Join Game NOOOW</Text>
           <Text style={styles.subtitle}>Enter a game code to join</Text>
         </View>
 
@@ -163,4 +163,3 @@ const styles = StyleSheet.create({
     color: "#ccc",
   },
 });
-
