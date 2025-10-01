@@ -80,6 +80,22 @@ export default function RoundScoreboardScreen() {
 
         setQuestion(questionData);
 
+        // Fetch all active players
+        const { data: playersData, error: playersError } = await supabase
+          .from("players")
+          .select("id, name")
+          .eq("game_id", state.currentGame!.id)
+          .eq("is_active", true);
+
+        if (playersError) {
+          console.error(
+            "❌ [RoundScoreboard] Error fetching players:",
+            playersError
+          );
+          setResults([]);
+          return;
+        }
+
         // Fetch player answers
         const { data: answersData, error: answersError } = await supabase
           .from("player_answers")
@@ -101,14 +117,37 @@ export default function RoundScoreboardScreen() {
           return;
         }
 
-        const formattedResults =
-          answersData?.map((answer: any) => ({
+        // Create a map of answered players
+        const answeredPlayers = new Map();
+        answersData?.forEach((answer: any) => {
+          answeredPlayers.set(answer.player_id, {
             id: answer.id,
             name: answer.players?.name || "Unknown Player",
             answer: answer.answer || "No answer",
             is_correct: answer.is_correct || false,
             points_earned: answer.points_earned || 0,
-          })) || [];
+            player_id: answer.player_id,
+          });
+        });
+
+        // Combine answered and unanswered players
+        const allPlayers = playersData || [];
+        const formattedResults = allPlayers.map((player: any) => {
+          if (answeredPlayers.has(player.id)) {
+            // Player answered
+            return answeredPlayers.get(player.id);
+          } else {
+            // Player didn't answer
+            return {
+              id: `unanswered-${player.id}`,
+              name: player.name,
+              answer: "Ran out of time",
+              is_correct: false,
+              points_earned: 0,
+              player_id: player.id,
+            };
+          }
+        });
 
         setResults(formattedResults);
 
@@ -245,7 +284,9 @@ export default function RoundScoreboardScreen() {
             <View
               style={[
                 styles.playerResult,
-                currentPlayerResult.is_correct
+                currentPlayerResult.answer === "Ran out of time"
+                  ? styles.timeoutResult
+                  : currentPlayerResult.is_correct
                   ? styles.correctResult
                   : styles.incorrectResult,
               ]}
@@ -281,7 +322,9 @@ export default function RoundScoreboardScreen() {
                 key={result.id}
                 style={[
                   styles.playerResult,
-                  result.is_correct
+                  result.answer === "Ran out of time"
+                    ? styles.timeoutResult
+                    : result.is_correct
                     ? styles.correctResult
                     : styles.incorrectResult,
                 ]}
@@ -368,6 +411,10 @@ const styles = StyleSheet.create({
   incorrectResult: {
     backgroundColor: "#C62828",
     borderColor: "#F44336",
+  },
+  timeoutResult: {
+    backgroundColor: "#424242",
+    borderColor: "#9E9E9E",
   },
   playerName: {
     fontSize: 16,

@@ -139,10 +139,10 @@ export default function QuestionScreen() {
     }
   }, [question?.id]);
 
-  // FOCUS-BASED TIMER - Only runs when screen is focused and question exists
+  // FOCUS-BASED TIMER - Keeps running even after player answers
   useFocusEffect(
     React.useCallback(() => {
-      if (!question || hasAnswered || hasNavigatedRef.current) return;
+      if (!question || hasNavigatedRef.current) return;
 
       console.log("❓ [Question] Starting timer - screen is focused");
       timerRef.current = setInterval(() => {
@@ -182,12 +182,7 @@ export default function QuestionScreen() {
           clearInterval(timerRef.current);
         }
       };
-    }, [
-      question?.id,
-      hasAnswered,
-      state.currentGame?.id,
-      state.currentPlayer?.id,
-    ])
+    }, [question?.id, state.currentGame?.id, state.currentPlayer?.id])
   );
 
   // Cleanup on unmount
@@ -281,7 +276,7 @@ export default function QuestionScreen() {
   return (
     <LinearGradient colors={["#1a1a2e", "#16213e"]} style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.timer}>{timeLeft}s</Text>
+        <Text style={styles.timer}>{timeLeft}</Text>
         <View style={styles.headerInfo}>
           <Text style={styles.category}>
             {state.currentGame?.current_category_id ===

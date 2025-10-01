@@ -24,6 +24,7 @@ export default function LobbyScreen() {
     leaveGame,
     isHost,
     navigateToCorrectScreen,
+    getPlayerScores,
   } = useGame();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -69,12 +70,15 @@ export default function LobbyScreen() {
     setRefreshing(true);
     try {
       await refreshPlayers();
+      // Also refresh scores
+      const playerScores = await getPlayerScores();
+      setScores(playerScores);
     } catch (error) {
       console.error("❌ [Lobby] Refresh error:", error);
     } finally {
       setRefreshing(false);
     }
-  }, [refreshPlayers]);
+  }, [refreshPlayers, getPlayerScores]);
 
   // No polling - rely on real-time updates only
 
@@ -118,13 +122,24 @@ export default function LobbyScreen() {
     ]);
   };
 
-  const getPlayerScores = (): { [playerId: string]: number } => {
-    // This would be implemented with the getPlayerScores function
-    // For now, return empty scores
-    return {};
-  };
+  // Get player scores from GameContext
+  const [scores, setScores] = useState<{ [playerId: string]: number }>({});
 
-  const scores = getPlayerScores();
+  // Fetch scores when component mounts or players change
+  useEffect(() => {
+    const fetchScores = async () => {
+      try {
+        const playerScores = await getPlayerScores();
+        setScores(playerScores);
+      } catch (error) {
+        console.error("❌ [Lobby] Error fetching player scores:", error);
+      }
+    };
+
+    if (state.players.length > 0) {
+      fetchScores();
+    }
+  }, [state.players, state.currentGame?.id]);
 
   const renderPlayerList = () => {
     const sortedPlayers = [...state.players].sort((a, b) => {
@@ -189,11 +204,11 @@ export default function LobbyScreen() {
         </View>
 
         <View style={styles.gameInfo}>
-          <Text style={styles.infoText}>
+          {/* <Text style={styles.infoText}>
             Players: {state.players.length}/{state.currentGame.max_players}
-          </Text>
+          </Text> */}
           <Text style={styles.infoText}>
-            Round: {state.currentGame.current_round + 1} of{" "}
+            Get ready for round: {state.currentGame.current_round + 1} of{" "}
             {state.currentGame.game_length}
           </Text>
           {/* <TouchableOpacity
@@ -325,15 +340,16 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   gameInfo: {
-    backgroundColor: "#333",
+    backgroundColor: "pink",
     borderRadius: 10,
     padding: 15,
     marginBottom: 20,
   },
   infoText: {
     fontSize: 16,
-    color: "#fff",
     marginBottom: 5,
+    color: "black",
+    textAlign: "center",
   },
   refreshButton: {
     backgroundColor: "#2196F3",
