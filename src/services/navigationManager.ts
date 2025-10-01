@@ -6,8 +6,10 @@ import { NavigationProp } from "@react-navigation/native";
 export type GameState =
   | "waiting"
   | "category_selection"
-  | "question_intro"
-  | "question"
+  | "game_intro"
+  | "game_playing"
+  | "game_voting"
+  | "game_results"
   | "round_scoreboard";
 
 export interface NavigationState {
@@ -143,14 +145,24 @@ class NavigationManager {
           }
           break;
 
-        case "question_intro":
-          console.log("🧭 [NavigationManager] Navigating to QuestionIntro");
-          navigation.navigate("QuestionIntro" as never);
+        case "game_intro":
+          console.log("🧭 [NavigationManager] Navigating to ImposterLoading");
+          navigation.navigate("ImposterLoading" as never);
           break;
 
-        case "question":
-          console.log("🧭 [NavigationManager] Navigating to Question");
-          navigation.navigate("Question" as never);
+        case "game_playing":
+          console.log("🧭 [NavigationManager] Navigating to ImposterGame");
+          navigation.navigate("ImposterGame" as never);
+          break;
+
+        case "game_voting":
+          console.log("🧭 [NavigationManager] Navigating to ImposterVoting");
+          navigation.navigate("ImposterVoting" as never);
+          break;
+
+        case "game_results":
+          console.log("🧭 [NavigationManager] Navigating to ImposterResults");
+          navigation.navigate("ImposterResults" as never);
           break;
 
         case "round_scoreboard":
@@ -180,8 +192,10 @@ class NavigationManager {
     const expectedScreens = {
       waiting: ["Lobby"],
       category_selection: ["CategorySelection", "WaitingForCategory"],
-      question_intro: ["QuestionIntro"],
-      question: ["Question"],
+      game_intro: ["ImposterLoading"],
+      game_playing: ["ImposterGame"],
+      game_voting: ["ImposterVoting"],
+      game_results: ["ImposterResults"],
       round_scoreboard: ["RoundScoreboard"],
     };
 

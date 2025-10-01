@@ -8,11 +8,12 @@ import {
   ScrollView,
   RefreshControl,
   Alert,
+  Image,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
-import { useGame } from "../contexts/GameContext";
-import { navigationManager } from "../services/navigationManager";
+import { useGame } from "../../contexts/GameContext";
+import { navigationManager } from "../../services/navigationManager";
 
 export default function LobbyScreen() {
   const navigation = useNavigation();
@@ -182,10 +183,34 @@ export default function LobbyScreen() {
           ]}
         >
           <View style={styles.playerInfo}>
-            <Text style={styles.playerName}>
-              {player.name} {isCurrentPlayer && "(You)"}
-            </Text>
-            {player.is_host && <Text style={styles.hostBadge}>👑 Host</Text>}
+            <View style={styles.playerHeader}>
+              {player.avatar &&
+              (player.avatar.startsWith("http") ||
+                player.avatar.startsWith("file://") ||
+                player.avatar.startsWith("data:")) ? (
+                <Image
+                  source={{ uri: player.avatar }}
+                  style={styles.playerAvatarImage}
+                  onError={() =>
+                    console.log("Image load error for:", player.avatar)
+                  }
+                />
+              ) : (
+                <View style={styles.playerInitialCircle}>
+                  <Text style={styles.playerInitial}>
+                    {player.avatar || player.name.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.playerNameContainer}>
+                <Text style={styles.playerName}>
+                  {player.name} {isCurrentPlayer && "(You)"}
+                </Text>
+                {player.is_host && (
+                  <Text style={styles.hostBadge}>👑 Host</Text>
+                )}
+              </View>
+            </View>
           </View>
           <View style={styles.playerScore}>
             <Text style={styles.scoreText}>{score}</Text>
@@ -241,52 +266,6 @@ export default function LobbyScreen() {
               </Text>
             )}
           </Text>
-          {/* <TouchableOpacity
-            style={styles.refreshButton}
-            onPress={handleRefresh}
-            disabled={refreshing}
-          ></TouchableOpacity> */}
-
-          {/* <TouchableOpacity
-            style={styles.debugButton}
-            onPress={async () => {
-              console.log("🔍 [Debug] Current state:", {
-                current_state: state.currentGame?.current_state,
-                category_chooser_id: state.currentGame?.category_chooser_id,
-                current_player_id: state.currentPlayer?.id,
-                is_category_chooser:
-                  state.currentGame?.category_chooser_id ===
-                  state.currentPlayer?.id,
-              });
-              await refreshGameState();
-            }}
-          >
-            <Text style={styles.debugButtonText}>🔍 Debug State</Text>
-          </TouchableOpacity> */}
-
-          {/* <TouchableOpacity
-            style={styles.debugButton}
-            onPress={async () => {
-              if (state.currentGame?.id) {
-                console.log(
-                  "🔄 [Lobby] Manually fetching questions for game:",
-                  state.currentGame.id
-                );
-                try {
-                  // Questions are already loaded in the game context
-                  console.log("✅ [Lobby] Questions already available");
-                  await refreshGameState();
-                } catch (error) {
-                  console.error(
-                    "❌ [Lobby] Error refreshing game state:",
-                    error
-                  );
-                }
-              }
-            }}
-          >
-            <Text style={styles.debugButtonText}>🔄 Fetch Questions</Text>
-          </TouchableOpacity> */}
         </View>
 
         <View style={styles.playersSection}>
@@ -533,5 +512,32 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  playerHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  playerInitialCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#4ecdc4",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  playerInitial: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#fff",
+  },
+  playerAvatarImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    marginRight: 12,
+  },
+  playerNameContainer: {
+    flex: 1,
   },
 });

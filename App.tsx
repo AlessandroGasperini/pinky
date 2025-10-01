@@ -4,16 +4,26 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { GameProvider } from "./src/contexts/GameContext";
 
-// Import all screens
-import LandingScreen from "./src/screens/LandingScreen";
-import CreateGameScreen from "./src/screens/CreateGameScreen";
-import JoinGameScreen from "./src/screens/JoinGameScreen";
-import LobbyScreen from "./src/screens/LobbyScreen";
-import CategorySelectionScreen from "./src/screens/CategorySelectionScreen";
-import WaitingForCategoryScreen from "./src/screens/WaitingForCategoryScreen";
-import QuestionIntroScreen from "./src/screens/QuestionIntroScreen";
-import QuestionScreen from "./src/screens/QuestionScreen";
-import RoundScoreboardScreen from "./src/screens/RoundScoreboardScreen";
+// Import Core screens
+import LandingScreen from "./src/screens/core/LandingScreen";
+import CreateGameScreen from "./src/screens/core/CreateGameScreen";
+import JoinGameScreen from "./src/screens/core/JoinGameScreen";
+import LobbyScreen from "./src/screens/core/LobbyScreen";
+
+// Import Gameplay screens
+import CategorySelectionScreen from "./src/screens/gameplay/CategorySelectionScreen";
+import WaitingForCategoryScreen from "./src/screens/gameplay/WaitingForCategoryScreen";
+import QuestionIntroScreen from "./src/screens/gameplay/QuestionIntroScreen";
+import QuestionScreen from "./src/screens/gameplay/QuestionScreen";
+
+// Import Results screens
+import RoundScoreboardScreen from "./src/screens/results/RoundScoreboardScreen";
+
+// Import Imposter Game screens
+import ImposterLoadingScreen from "./src/screens/games/ImposterGame/ImposterLoadingScreen";
+import ImposterGameScreen from "./src/screens/games/ImposterGame/ImposterGameScreen";
+import ImposterVotingScreen from "./src/screens/games/ImposterGame/ImposterVotingScreen";
+import ImposterResultsScreen from "./src/screens/games/ImposterGame/ImposterResultsScreen";
 
 const Stack = createStackNavigator();
 
@@ -44,8 +54,27 @@ export default function App() {
             name="WaitingForCategory"
             component={WaitingForCategoryScreen}
           />
+
+          {/* Legacy Question Flow */}
           <Stack.Screen name="QuestionIntro" component={QuestionIntroScreen} />
           <Stack.Screen name="Question" component={QuestionScreen} />
+
+          {/* Imposter Game Flow */}
+          <Stack.Screen
+            name="ImposterLoading"
+            component={ImposterLoadingScreen}
+          />
+          <Stack.Screen name="ImposterGame" component={ImposterGameScreen} />
+          <Stack.Screen
+            name="ImposterVoting"
+            component={ImposterVotingScreen}
+          />
+          <Stack.Screen
+            name="ImposterResults"
+            component={ImposterResultsScreen}
+          />
+
+          {/* Results */}
           <Stack.Screen
             name="RoundScoreboard"
             component={RoundScoreboardScreen}

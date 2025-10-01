@@ -2,9 +2,9 @@ import React, { useEffect, useState, useRef } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
-import { useGame } from "../contexts/GameContext";
-import { supabase } from "../services/supabase";
-import { navigationManager } from "../services/navigationManager";
+import { useGame } from "../../contexts/GameContext";
+import { supabase } from "../../services/supabase";
+import { navigationManager } from "../../services/navigationManager";
 
 export default function QuestionScreen() {
   const navigation = useNavigation();

@@ -1,0 +1,1 @@
+INSERT INTO "public"."categories" ("id", "name", "description", "created_at") VALUES ('311499a2-dc99-4eb9-9fb6-a39be0f390a4', 'never_have_i_ever', 'Never have I ever questions', '2025-09-29 00:04:38.763852+00'), ('bdc344cd-df21-41b5-95d1-5bf16902ea31', 'simple', 'Simple true/false questions', '2025-09-29 00:04:38.763852+00');

@@ -1,0 +1,1 @@
+INSERT INTO "public"."player_answers" ("id", "player_id", "game_id", "question_id", "answer", "is_correct", "points_earned", "answered_at") VALUES ('f38d2f06-5391-488f-8629-11a9f7aecc24', '273ffa27-fb22-4b49-ae3d-e22ec594628b', 'ca4809c0-0492-48dd-bac6-aa9098dd0866', '91c05f8d-4ffd-46d4-9d69-c02e84dabf74', 'Yes, I have', 'true', '1', '2025-10-01 11:21:51.200028+00');
