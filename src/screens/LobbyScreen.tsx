@@ -190,25 +190,19 @@ export default function LobbyScreen() {
 
         <View style={styles.gameInfo}>
           <Text style={styles.infoText}>
-            Game Length: {state.currentGame.game_length} questions
-          </Text>
-          <Text style={styles.infoText}>
             Players: {state.players.length}/{state.currentGame.max_players}
           </Text>
           <Text style={styles.infoText}>
-            Round: {state.currentGame.current_round + 1}
+            Round: {state.currentGame.current_round + 1} of{" "}
+            {state.currentGame.game_length}
           </Text>
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={styles.refreshButton}
             onPress={handleRefresh}
             disabled={refreshing}
-          >
-            <Text style={styles.refreshButtonText}>
-              {refreshing ? "Refreshing..." : "🔄 Refresh Players"}
-            </Text>
-          </TouchableOpacity>
+          ></TouchableOpacity> */}
 
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={styles.debugButton}
             onPress={async () => {
               console.log("🔍 [Debug] Current state:", {
@@ -223,9 +217,9 @@ export default function LobbyScreen() {
             }}
           >
             <Text style={styles.debugButtonText}>🔍 Debug State</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={styles.debugButton}
             onPress={async () => {
               if (state.currentGame?.id) {
@@ -247,13 +241,11 @@ export default function LobbyScreen() {
             }}
           >
             <Text style={styles.debugButtonText}>🔄 Fetch Questions</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
         <View style={styles.playersSection}>
-          <Text style={styles.sectionTitle}>
-            Players ({state.players.length})
-          </Text>
+          <Text style={styles.sectionTitle}>Pole</Text>
           {state.players.length === 0 ? (
             <Text style={styles.emptyText}>No players yet</Text>
           ) : (
@@ -265,17 +257,6 @@ export default function LobbyScreen() {
           <View style={styles.connectionWarning}>
             <Text style={styles.warningText}>
               ⚠️ Connection lost. Attempting to reconnect...
-            </Text>
-          </View>
-        )}
-
-        {state.connectionStatus === "connected" && (
-          <View style={styles.connectionSuccess}>
-            <Text style={styles.successText}>
-              ✅ Real-time connected - Players will appear instantly
-            </Text>
-            <Text style={styles.pollingText}>
-              🔄 Aggressive polling active (1s) + Real-time
             </Text>
           </View>
         )}
@@ -328,6 +309,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
+    marginTop: 40,
     alignItems: "center",
     marginBottom: 20,
   },

@@ -224,7 +224,7 @@ export default function RoundScoreboardScreen() {
       <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
           <Text style={styles.title}>Round Results</Text>
-          <Text style={styles.countdown}>Next round in {countdown}s</Text>
+          <Text style={styles.countdown}>Back to lobby in {countdown}s</Text>
         </View>
 
         {question && (
