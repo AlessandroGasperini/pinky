@@ -2,9 +2,9 @@ import React, { useEffect, useState, useRef } from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
-import { useGame } from "../contexts/GameContext";
-import { supabase } from "../services/supabase";
-import { navigationManager } from "../services/navigationManager";
+import { useGame } from "../../contexts/GameContext";
+import { supabase } from "../../services/supabase";
+import { navigationManager } from "../../services/navigationManager";
 
 interface ResultItem {
   id: string;

@@ -12,8 +12,8 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
-import { useGame } from "../contexts/GameContext";
-import { navigationManager } from "../services/navigationManager";
+import { useGame } from "../../contexts/GameContext";
+import { navigationManager } from "../../services/navigationManager";
 
 export default function LobbyScreen() {
   const navigation = useNavigation();
@@ -266,52 +266,6 @@ export default function LobbyScreen() {
               </Text>
             )}
           </Text>
-          {/* <TouchableOpacity
-            style={styles.refreshButton}
-            onPress={handleRefresh}
-            disabled={refreshing}
-          ></TouchableOpacity> */}
-
-          {/* <TouchableOpacity
-            style={styles.debugButton}
-            onPress={async () => {
-              console.log("🔍 [Debug] Current state:", {
-                current_state: state.currentGame?.current_state,
-                category_chooser_id: state.currentGame?.category_chooser_id,
-                current_player_id: state.currentPlayer?.id,
-                is_category_chooser:
-                  state.currentGame?.category_chooser_id ===
-                  state.currentPlayer?.id,
-              });
-              await refreshGameState();
-            }}
-          >
-            <Text style={styles.debugButtonText}>🔍 Debug State</Text>
-          </TouchableOpacity> */}
-
-          {/* <TouchableOpacity
-            style={styles.debugButton}
-            onPress={async () => {
-              if (state.currentGame?.id) {
-                console.log(
-                  "🔄 [Lobby] Manually fetching questions for game:",
-                  state.currentGame.id
-                );
-                try {
-                  // Questions are already loaded in the game context
-                  console.log("✅ [Lobby] Questions already available");
-                  await refreshGameState();
-                } catch (error) {
-                  console.error(
-                    "❌ [Lobby] Error refreshing game state:",
-                    error
-                  );
-                }
-              }
-            }}
-          >
-            <Text style={styles.debugButtonText}>🔄 Fetch Questions</Text>
-          </TouchableOpacity> */}
         </View>
 
         <View style={styles.playersSection}>
@@ -564,9 +518,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   playerInitialCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: "#4ecdc4",
     justifyContent: "center",
     alignItems: "center",

@@ -64,7 +64,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   // Professional create game with strict validation
   const createGame = useCallback(
-    async (gameLength: number, playerName: string): Promise<string> => {
+    async (
+      gameLength: number,
+      playerName: string,
+      avatar: string = "🎭"
+    ): Promise<string> => {
       try {
         dispatch({ type: "SET_LOADING", payload: true });
         dispatch({ type: "SET_ERROR", payload: null });
@@ -73,29 +77,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         // Generate unique game code
         const gameCode = Math.floor(100 + Math.random() * 900).toString();
 
-        // Pre-fetch questions for the game
+        // Get available categories
         const categories = await db.getCategories();
-        if (!categories) throw new Error("Failed to fetch categories");
-
-        const questionsPerCategory = Math.floor(gameLength / 2);
-        const remainingQuestions = gameLength % 2;
-
-        const [simpleQuestions, neverHaveIEverQuestions] = await Promise.all([
-          db.getQuestionsByCategory(
-            categories.find((c) => c.name === "simple")?.id || "",
-            questionsPerCategory + (remainingQuestions > 0 ? 1 : 0)
-          ),
-          db.getQuestionsByCategory(
-            categories.find((c) => c.name === "never_have_i_ever")?.id || "",
-            questionsPerCategory + (remainingQuestions > 1 ? 1 : 0)
-          ),
-        ]);
-
-        if (!simpleQuestions || !neverHaveIEverQuestions) {
-          throw new Error("Failed to fetch questions");
+        if (!categories || categories.length === 0) {
+          throw new Error("No categories available");
         }
 
-        const allQuestions = [...simpleQuestions, ...neverHaveIEverQuestions];
+        // For now, we only have imposter game - no questions needed
+        // Create empty questions array since imposter game doesn't use questions
+        const allQuestions: any[] = [];
 
         // Shuffle questions professionally
         const shuffledQuestions = allQuestions.sort(() => Math.random() - 0.5);
@@ -127,6 +117,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         const player = await db.createPlayer({
           game_id: game.id,
           name: playerName.trim(),
+          avatar: avatar || playerName.trim().charAt(0).toUpperCase(),
           is_host: true,
           is_active: true,
         });
@@ -224,7 +215,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   // Professional join game with strict validation
   const joinGame = useCallback(
-    async (gameCode: string, playerName: string): Promise<void> => {
+    async (
+      gameCode: string,
+      playerName: string,
+      avatar: string = "👤"
+    ): Promise<void> => {
       try {
         dispatch({ type: "SET_LOADING", payload: true });
         dispatch({ type: "SET_ERROR", payload: null });
@@ -256,6 +251,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         const player = await db.createPlayer({
           game_id: game.id,
           name: playerName.trim(),
+          avatar: avatar || playerName.trim().charAt(0).toUpperCase(),
           is_host: false,
           is_active: true,
         });
@@ -429,7 +425,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state.currentGame, state.currentPlayer]);
 
-  // Professional category selection
+  // Professional category selection with game type support
   const selectCategory = useCallback(
     async (categoryId: string): Promise<void> => {
       if (!state.currentGame || !state.currentPlayer) {
@@ -441,63 +437,31 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        // Get current round and questions array
-        const currentRound = state.currentGame.current_round || 0;
-        const questionsArray = (state.currentGame as any).questions || [];
-
-        console.log("🎯 [Game] Selecting category:", {
-          categoryId,
-          currentRound,
-          questionsArrayLength: questionsArray.length,
-        });
-
-        if (currentRound >= questionsArray.length) {
-          throw new Error("No more questions available");
-        }
-
-        // Get the category name from the categoryId
+        // Get the category info
         const categories = await db.getCategories();
         const selectedCategory = categories.find(
           (cat) => cat.id === categoryId
         );
-        const categoryName = selectedCategory?.name;
 
-        if (!categoryName) {
+        if (!selectedCategory) {
           throw new Error("Category not found");
         }
 
-        // Get the question for the selected category and current round
-        const currentQuestion = await db.getQuestionForRound(
-          state.currentGame.id,
-          categoryName,
-          currentRound + 1 // Round is 1-based
-        );
-
-        console.log("🎯 [Game] Got question for round:", currentQuestion);
-
-        // Update game state
-        const updatedGame = await db.updateGame(state.currentGame.id, {
-          current_state: "question_intro",
-          current_category_id: categoryId,
-          current_question_id: currentQuestion.id,
-          question_number: currentRound + 1,
+        console.log("🎯 [Game] Selecting category:", {
+          categoryId,
+          categoryName: selectedCategory.name,
+          gameType: selectedCategory.name,
         });
 
-        // Update local state
-        dispatch({
-          type: "UPDATE_GAME_STATE",
-          payload: {
-            current_state: "question_intro",
-            current_category_id: categoryId,
-            current_question_id: currentQuestion.id,
-            question_number: currentRound + 1,
-          },
-        });
+        // Handle different game types
+        if (selectedCategory.name === "imposter") {
+          // Imposter game logic
+          await startImposterGame(categoryId);
+        } else {
+          // Legacy question-based games
+          await startQuestionGame(categoryId);
+        }
 
-        // Set current question
-        dispatch({ type: "SET_CURRENT_QUESTION", payload: currentQuestion });
-
-        // Navigation handled by screens
         console.log("✅ [Game] Category selected:", categoryId);
       } catch (error) {
         console.error("❌ [Game] Select category error:", error);
@@ -505,6 +469,108 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       }
     },
     [state.currentGame, state.currentPlayer]
+  );
+
+  // Start Imposter game
+  const startImposterGame = useCallback(
+    async (categoryId: string): Promise<void> => {
+      if (!state.currentGame) return;
+
+      // Randomly select an imposter
+      const activePlayers = state.players.filter((p) => p.is_active);
+      const randomIndex = Math.floor(Math.random() * activePlayers.length);
+      const imposterId = activePlayers[randomIndex].id;
+
+      // Get words from database for this category
+      const words = await db.getWordsByCategory(categoryId, 10);
+
+      // Initialize game data
+      const gameData = {
+        imposter_id: imposterId,
+        words: words,
+        votes: {},
+      };
+
+      // Update game state to game_intro
+      await db.updateGame(state.currentGame.id, {
+        current_state: "game_intro",
+        current_category_id: categoryId,
+        game_data: gameData,
+      });
+
+      // Update local state
+      dispatch({
+        type: "UPDATE_GAME_STATE",
+        payload: {
+          current_state: "game_intro",
+          current_category_id: categoryId,
+          game_data: gameData,
+        },
+      });
+    },
+    [state.currentGame, state.players]
+  );
+
+  // Start legacy question game
+  const startQuestionGame = useCallback(
+    async (categoryId: string): Promise<void> => {
+      if (!state.currentGame) return;
+
+      // Get current round and questions array
+      const currentRound = state.currentGame.current_round || 0;
+      const questionsArray = (state.currentGame as any).questions || [];
+
+      console.log("🎯 [Game] Starting question game:", {
+        categoryId,
+        currentRound,
+        questionsArrayLength: questionsArray.length,
+      });
+
+      if (currentRound >= questionsArray.length) {
+        throw new Error("No more questions available");
+      }
+
+      // Get the category name from the categoryId
+      const categories = await db.getCategories();
+      const selectedCategory = categories.find((cat) => cat.id === categoryId);
+      const categoryName = selectedCategory?.name;
+
+      if (!categoryName) {
+        throw new Error("Category not found");
+      }
+
+      // Get the question for the selected category and current round
+      const currentQuestion = await db.getQuestionForRound(
+        state.currentGame.id,
+        categoryName,
+        currentRound + 1 // Round is 1-based
+      );
+
+      console.log("🎯 [Game] Got question for round:", currentQuestion);
+
+      // Update game state
+      await db.updateGame(state.currentGame.id, {
+        current_state: "question_intro",
+        current_category_id: categoryId,
+        current_question_id: currentQuestion.id,
+        question_number: currentRound + 1,
+      });
+
+      // Update local state
+      dispatch({
+        type: "UPDATE_GAME_STATE",
+        payload: {
+          current_state: "question_intro",
+          current_category_id: categoryId,
+          current_question_id: currentQuestion.id,
+          question_number: currentRound + 1,
+        },
+      });
+
+      // Set current question
+      dispatch({ type: "SET_CURRENT_QUESTION", payload: currentQuestion });
+    },
+    [state.currentGame]
   );
 
   // Professional answer submission
@@ -580,6 +646,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         current_category_id: undefined,
         category_chooser_id: undefined,
         current_question_id: undefined,
+        game_data: null,
         current_round: (state.currentGame.current_round || 0) + 1,
       });
 
@@ -595,6 +662,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           current_category_id: undefined,
           category_chooser_id: undefined,
           current_question_id: undefined,
+          game_data: null,
           current_round: (state.currentGame.current_round || 0) + 1,
         },
       });
@@ -740,6 +808,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     getPlayerScores,
     isHost,
     navigateToCorrectScreen,
+    startImposterGame,
+    startQuestionGame,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

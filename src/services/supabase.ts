@@ -131,6 +131,31 @@ export const db = {
     return categories;
   },
 
+  // Words for games like Imposter
+  async getWordsByCategory(categoryId: string, limit: number = 10) {
+    console.log(
+      "📝 [DB] Getting words for category:",
+      categoryId,
+      "limit:",
+      limit
+    );
+
+    const { data: words, error } = await supabase
+      .from("words")
+      .select("*")
+      .eq("category_id", categoryId)
+      .eq("is_active", true)
+      .limit(limit);
+
+    if (error) {
+      console.error("❌ [DB] Get words error:", error);
+      throw new Error(`Failed to get words: ${error.message}`);
+    }
+
+    console.log("✅ [DB] Words found for category:", words?.length || 0);
+    return words?.map((w) => w.word) || [];
+  },
+
   // Questions
   async getQuestionsByCategory(categoryId: string, limit: number) {
     console.log(
@@ -250,18 +275,144 @@ export const db = {
   async getPlayerScores(gameId: string) {
     console.log("💾 [DB] Getting player scores for game:", gameId);
 
-    const { data: scores, error } = await supabase
+    // Get scores from player_answers table (for legacy question-based games)
+    const { data: answersData, error: answersError } = await supabase
       .from("player_answers")
       .select("player_id, points_earned")
       .eq("game_id", gameId);
 
-    if (error) {
-      console.error("❌ [DB] Get player scores error:", error);
-      throw new Error(`Failed to get player scores: ${error.message}`);
+    if (answersError) {
+      console.error("❌ [DB] Get player answers scores error:", answersError);
     }
 
-    console.log("✅ [DB] Player scores found:", scores?.length || 0);
-    return scores;
+    // Get scores from games.scores field (for Imposter games)
+    const { data: gameData, error: gameError } = await supabase
+      .from("games")
+      .select("scores")
+      .eq("id", gameId)
+      .single();
+
+    if (gameError) {
+      console.error("❌ [DB] Get game scores error:", gameError);
+    }
+
+    // For now, prioritize games.scores if it exists (Imposter games)
+    // Otherwise use player_answers (legacy games)
+    if (gameData?.scores && Object.keys(gameData.scores).length > 0) {
+      // Return scores from games.scores field
+      const scores = Object.entries(gameData.scores).map(
+        ([playerId, points]) => ({
+          player_id: playerId,
+          points_earned: points,
+        })
+      );
+      console.log("✅ [DB] Using Imposter game scores:", scores.length);
+      return scores;
+    } else {
+      // Return scores from player_answers table
+      console.log(
+        "✅ [DB] Using legacy question scores:",
+        answersData?.length || 0
+      );
+      return answersData || [];
+    }
+  },
+
+  // Save Imposter game results to games.scores field
+  async saveGameResults(
+    gameId: string,
+    roundNumber: number,
+    playerScores: { [playerId: string]: number },
+    gameData: any
+  ) {
+    console.log("💾 [DB] Saving game results to games table:", {
+      gameId,
+      roundNumber,
+      playerScores,
+    });
+
+    // Get current scores from games table
+    const { data: currentGame, error: fetchError } = await supabase
+      .from("games")
+      .select("scores")
+      .eq("id", gameId)
+      .single();
+
+    if (fetchError) {
+      console.error("❌ [DB] Fetch current game error:", fetchError);
+      throw new Error(`Failed to fetch current game: ${fetchError.message}`);
+    }
+
+    // Merge new scores with existing scores (accumulate)
+    const currentScores = currentGame?.scores || {};
+    const updatedScores = { ...currentScores };
+
+    Object.entries(playerScores).forEach(([playerId, points]) => {
+      updatedScores[playerId] = (updatedScores[playerId] || 0) + points;
+    });
+
+    // Update games table with new scores
+    const { data, error } = await supabase
+      .from("games")
+      .update({ scores: updatedScores })
+      .eq("id", gameId);
+
+    if (error) {
+      console.error("❌ [DB] Save game results error:", error);
+      throw new Error(`Failed to save game results: ${error.message}`);
+    }
+
+    console.log("✅ [DB] Game results saved successfully to games table");
+    return data;
+  },
+
+  // Save player vote for Imposter game
+  async savePlayerVote(
+    gameId: string,
+    playerId: string,
+    votedForPlayerId: string
+  ) {
+    console.log("🗳️ [DB] Saving player vote:", {
+      gameId,
+      playerId,
+      votedForPlayerId,
+    });
+
+    // Update the game_data.votes field
+    const { data: currentGame, error: fetchError } = await supabase
+      .from("games")
+      .select("game_data")
+      .eq("id", gameId)
+      .single();
+
+    if (fetchError) {
+      console.error("❌ [DB] Fetch game for vote error:", fetchError);
+      throw new Error(`Failed to fetch game: ${fetchError.message}`);
+    }
+
+    const currentGameData = currentGame?.game_data || {};
+    const updatedVotes = {
+      ...currentGameData.votes,
+      [playerId]: votedForPlayerId,
+    };
+
+    const updatedGameData = {
+      ...currentGameData,
+      votes: updatedVotes,
+    };
+
+    const { data, error } = await supabase
+      .from("games")
+      .update({ game_data: updatedGameData })
+      .eq("id", gameId);
+
+    if (error) {
+      console.error("❌ [DB] Save vote error:", error);
+      throw new Error(`Failed to save vote: ${error.message}`);
+    }
+
+    console.log("✅ [DB] Vote saved successfully");
+    return data;
   },
 
   // Game State Updates

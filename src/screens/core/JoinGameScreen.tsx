@@ -14,7 +14,7 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
-import { useGame } from "../contexts/GameContext";
+import { useGame } from "../../contexts/GameContext";
 
 export default function JoinGameScreen() {
   const navigation = useNavigation();

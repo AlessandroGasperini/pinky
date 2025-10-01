@@ -8,10 +8,13 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  ScrollView,
+  Image,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
-import { useGame } from "../contexts/GameContext";
+import { useGame } from "../../contexts/GameContext";
 
 type GameLength = 6 | 12 | 20;
 
@@ -31,6 +34,7 @@ export default function CreateGameScreen() {
   const { createGame } = useGame();
 
   const [playerName, setPlayerName] = useState("");
+  const [customImageUri, setCustomImageUri] = useState<string | null>(null);
   const [selectedLength, setSelectedLength] = useState<GameLength>(12);
   const [isCreating, setIsCreating] = useState(false);
 
@@ -44,7 +48,8 @@ export default function CreateGameScreen() {
     try {
       setIsCreating(true);
       console.log("🎮 [CreateGame] Creating game...");
-      const code = await createGame(selectedLength, name);
+      const avatarToUse = customImageUri || "";
+      const code = await createGame(selectedLength, name, avatarToUse);
 
       Alert.alert(
         "Game Created! 🎮",
@@ -58,6 +63,118 @@ export default function CreateGameScreen() {
       setIsCreating(false);
     }
   };
+
+  const pickImage = async () => {
+    try {
+      // Request permissions
+      const permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (permissionResult.granted === false) {
+        Alert.alert(
+          "Permission Required",
+          "Permission to access camera roll is required!"
+        );
+        return;
+      }
+
+      // Show action sheet
+      Alert.alert(
+        "Select Avatar",
+        "Choose how you'd like to select your avatar",
+        [
+          {
+            text: "Camera Roll",
+            onPress: async () => {
+              const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.3, // Lower quality for smaller file size
+                base64: true, // Enable base64 encoding
+              });
+
+              if (!result.canceled && result.assets[0]) {
+                const asset = result.assets[0];
+                // Store as data URI for sharing across devices
+                const dataUri = `data:${asset.type || "image/jpeg"};base64,${
+                  asset.base64
+                }`;
+                setCustomImageUri(dataUri);
+              }
+            },
+          },
+          {
+            text: "Take Photo",
+            onPress: async () => {
+              const cameraPermission =
+                await ImagePicker.requestCameraPermissionsAsync();
+              if (cameraPermission.granted === false) {
+                Alert.alert(
+                  "Permission Required",
+                  "Permission to access camera is required!"
+                );
+                return;
+              }
+
+              const result = await ImagePicker.launchCameraAsync({
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.3, // Lower quality for smaller file size
+                base64: true, // Enable base64 encoding
+              });
+
+              if (!result.canceled && result.assets[0]) {
+                const asset = result.assets[0];
+                // Store as data URI for sharing across devices
+                const dataUri = `data:${asset.type || "image/jpeg"};base64,${
+                  asset.base64
+                }`;
+                setCustomImageUri(dataUri);
+              }
+            },
+          },
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+        ]
+      );
+    } catch (error) {
+      console.error("Error picking image:", error);
+      Alert.alert("Error", "Failed to select image. Please try again.");
+    }
+  };
+
+  const renderAvatarSelection = () => (
+    <View style={styles.avatarContainer}>
+      <Text style={styles.avatarTitle}>Choose Your Avatar (Optional)</Text>
+
+      {/* Custom Image Option */}
+      <TouchableOpacity
+        style={[
+          styles.customImageButton,
+          customImageUri && styles.customImageButtonSelected,
+        ]}
+        onPress={pickImage}
+      >
+        {customImageUri ? (
+          <Image source={{ uri: customImageUri }} style={styles.customImage} />
+        ) : (
+          <View style={styles.customImagePlaceholder}>
+            <Text style={styles.customImageIcon}>📷</Text>
+            <Text style={styles.customImageText}>Add Photo</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+
+      <Text style={styles.avatarSubtext}>
+        {customImageUri
+          ? "Tap to change photo"
+          : "Tap to add a custom photo, or leave blank to use your initial"}
+      </Text>
+    </View>
+  );
 
   const renderGameLengthSelection = () => (
     <View style={styles.lengthContainer}>
@@ -100,13 +217,17 @@ export default function CreateGameScreen() {
       colors={["#1a1a2e", "#16213e", "#0f3460"]}
       style={styles.container}
     >
-      <View style={styles.content}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.header}>
           <Text style={styles.title}>Create Game</Text>
           <Text style={styles.subtitle}>Set up your own game room</Text>
         </View>
 
-        {renderGameLengthSelection()}
+        {renderAvatarSelection()}
 
         <TextInput
           style={styles.input}
@@ -116,6 +237,8 @@ export default function CreateGameScreen() {
           onChangeText={setPlayerName}
           maxLength={20}
         />
+
+        {renderGameLengthSelection()}
 
         <TouchableOpacity
           style={[styles.button, styles.createButton]}
@@ -135,7 +258,7 @@ export default function CreateGameScreen() {
         >
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </LinearGradient>
   );
 }
@@ -146,8 +269,11 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    justifyContent: "center",
+  },
+  contentContainer: {
     padding: 20,
+    justifyContent: "center",
+    flexGrow: 1,
   },
   header: {
     alignItems: "center",
@@ -240,5 +366,57 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: "#ccc",
   },
+  avatarContainer: {
+    marginBottom: 30,
+    alignItems: "center",
+  },
+  avatarTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#fff",
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  avatarSubtext: {
+    fontSize: 14,
+    color: "#ccc",
+    textAlign: "center",
+    marginTop: 10,
+    paddingHorizontal: 20,
+  },
+  customImageButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#2a2a3e",
+    justifyContent: "center",
+    alignItems: "center",
+    margin: 4,
+    borderWidth: 2,
+    borderColor: "transparent",
+    alignSelf: "center",
+    marginBottom: 15,
+  },
+  customImageButtonSelected: {
+    borderColor: "#4ecdc4",
+    backgroundColor: "#3a3a4e",
+  },
+  customImage: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+  },
+  customImagePlaceholder: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  customImageIcon: {
+    fontSize: 24,
+    marginBottom: 2,
+  },
+  customImageText: {
+    fontSize: 10,
+    color: "#ccc",
+    fontWeight: "500",
+  },
 });
-

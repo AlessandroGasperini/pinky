@@ -3,9 +3,8 @@
 export interface Category {
   id: string;
   name: string;
-  display_name: string;
   description?: string;
-  emoji?: string;
+  timeout_seconds: number;
   is_active: boolean;
   created_at: string;
 }
@@ -23,9 +22,19 @@ export interface Question {
   created_at: string;
 }
 
+export interface Word {
+  id: string;
+  word: string;
+  category_id: string;
+  difficulty: "easy" | "medium" | "hard";
+  is_active: boolean;
+  created_at: string;
+}
+
 export interface Player {
   id: string;
   name: string;
+  avatar: string; // Emoji or image URL
   is_host: boolean;
   game_id: string;
   is_active: boolean;
@@ -41,8 +50,10 @@ export interface Game {
   current_state:
     | "waiting"
     | "category_selection"
-    | "question_intro"
-    | "question"
+    | "game_intro"
+    | "game_playing"
+    | "game_voting"
+    | "game_results"
     | "round_scoreboard";
   current_category_id?: string;
   current_question_id?: string;
@@ -51,6 +62,12 @@ export interface Game {
   current_round: number;
   round_questions?: Question[];
   max_players: number;
+  // Game-specific data
+  game_data?: {
+    imposter_id?: string;
+    words?: string[];
+    votes?: Record<string, string>; // player_id -> voted_for_player_id
+  };
   created_at: string;
   updated_at: string;
 }
@@ -95,8 +112,16 @@ export type GameAction =
 
 export interface GameContextType {
   state: GameState;
-  createGame: (gameLength: number, playerName: string) => Promise<string>;
-  joinGame: (gameCode: string, playerName: string) => Promise<void>;
+  createGame: (
+    gameLength: number,
+    playerName: string,
+    avatar?: string
+  ) => Promise<string>;
+  joinGame: (
+    gameCode: string,
+    playerName: string,
+    avatar?: string
+  ) => Promise<void>;
   leaveGame: () => Promise<void>;
   refreshPlayers: () => Promise<void>;
   refreshGameState: () => Promise<void>;
@@ -114,6 +139,9 @@ export interface GameContextType {
     currentPlayerId?: string,
     isHost?: boolean
   ) => void;
+  // Imposter game functions
+  startImposterGame: (categoryId: string) => Promise<void>;
+  startQuestionGame: (categoryId: string) => Promise<void>;
 }
 
 // Navigation flow types for strict routing
