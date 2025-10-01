@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useGame } from "../contexts/GameContext";
 import { supabase } from "../services/supabase";
 import { navigationManager } from "../services/navigationManager";
@@ -26,34 +26,36 @@ export default function RoundScoreboardScreen() {
   const hasNavigatedRef = useRef(false);
 
   // BULLETPROOF VALIDATION - Only stay if state is round_scoreboard
-  useEffect(() => {
-    if (!state.currentGame || !state.currentPlayer) {
-      console.log(
-        "📊 [RoundScoreboard] No game or player, redirecting to landing"
-      );
-      navigation.navigate("Landing" as never);
-      return;
-    }
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!state.currentGame || !state.currentPlayer) {
+        console.log(
+          "📊 [RoundScoreboard] No game or player, redirecting to landing"
+        );
+        navigation.navigate("Landing" as never);
+        return;
+      }
 
-    // If not in round_scoreboard state, navigate to correct screen
-    if (state.currentGame.current_state !== "round_scoreboard") {
-      console.log(
-        "📊 [RoundScoreboard] State changed, navigating to correct screen"
-      );
-      navigateToCorrectScreen(
-        navigation,
-        state.currentGame.current_state,
-        state.currentGame.category_chooser_id,
-        state.currentPlayer.id,
-        state.currentPlayer.is_host
-      );
-      return;
-    }
+      // If not in round_scoreboard state, navigate to correct screen
+      if (state.currentGame.current_state !== "round_scoreboard") {
+        console.log(
+          "📊 [RoundScoreboard] State changed, navigating to correct screen"
+        );
+        navigateToCorrectScreen(
+          navigation,
+          state.currentGame.current_state,
+          state.currentGame.category_chooser_id,
+          state.currentPlayer.id,
+          state.currentPlayer.is_host
+        );
+        return;
+      }
 
-    console.log(
-      "📊 [RoundScoreboard] Staying in RoundScoreboard - correct state"
-    );
-  }, [state.currentGame?.current_state, state.currentPlayer]);
+      console.log(
+        "📊 [RoundScoreboard] Staying in RoundScoreboard - correct state"
+      );
+    }, [state.currentGame?.current_state, state.currentPlayer])
+  );
 
   // Fetch results when component mounts
   useEffect(() => {
@@ -121,68 +123,79 @@ export default function RoundScoreboardScreen() {
     fetchResults();
   }, [state.currentGame?.current_question_id, state.currentGame?.id]);
 
-  // SIMPLE COUNTDOWN - Host triggers returnToLobby, all players wait for state change
-  useEffect(() => {
-    if (
-      hasNavigatedRef.current ||
-      !state.currentGame ||
-      state.currentGame.current_state !== "round_scoreboard"
-    ) {
-      return;
-    }
-
-    console.log("📊 [RoundScoreboard] Starting 10-second countdown");
-    setCountdown(10);
-    hasNavigatedRef.current = false;
-
-    countdownRef.current = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          // Only host triggers return to lobby
-          if (!hasNavigatedRef.current && state.currentPlayer?.is_host) {
-            hasNavigatedRef.current = true;
-            if (countdownRef.current) {
-              clearInterval(countdownRef.current);
-            }
-            console.log("📊 [RoundScoreboard] Host triggering return to lobby");
-            returnToLobby();
-          }
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => {
-      if (countdownRef.current) {
-        clearInterval(countdownRef.current);
+  // FOCUS-BASED COUNTDOWN - Only runs when screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      if (
+        hasNavigatedRef.current ||
+        !state.currentGame ||
+        state.currentGame.current_state !== "round_scoreboard"
+      ) {
+        return;
       }
-    };
-  }, [state.currentGame?.current_state]); // Restart if state changes
 
-  // LISTEN FOR STATE CHANGES - ALL players navigate when state changes to waiting
-  useEffect(() => {
-    if (
-      state.currentGame?.current_state === "waiting" &&
-      !hasNavigatedRef.current
-    ) {
-      hasNavigatedRef.current = true;
-      if (countdownRef.current) {
-        clearInterval(countdownRef.current);
-      }
       console.log(
-        "📊 [RoundScoreboard] State changed to waiting, navigating to lobby"
+        "📊 [RoundScoreboard] Starting 10-second countdown - screen is focused"
       );
-      // Use centralized navigation
-      navigateToCorrectScreen(
-        navigation,
-        "waiting",
-        state.currentGame.category_chooser_id,
-        state.currentPlayer?.id,
-        state.currentPlayer?.is_host
-      );
-    }
-  }, [state.currentGame?.current_state]);
+      setCountdown(10);
+      hasNavigatedRef.current = false;
+
+      countdownRef.current = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            // Only host triggers return to lobby
+            if (!hasNavigatedRef.current && state.currentPlayer?.is_host) {
+              hasNavigatedRef.current = true;
+              if (countdownRef.current) {
+                clearInterval(countdownRef.current);
+              }
+              console.log(
+                "📊 [RoundScoreboard] Host triggering return to lobby"
+              );
+              returnToLobby();
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => {
+        console.log(
+          "📊 [RoundScoreboard] Cleaning up countdown - screen lost focus"
+        );
+        if (countdownRef.current) {
+          clearInterval(countdownRef.current);
+        }
+      };
+    }, [state.currentGame?.current_state, state.currentPlayer?.is_host]) // Restart if state changes
+  );
+
+  // LISTEN FOR STATE CHANGES - Only when screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      if (
+        state.currentGame?.current_state === "waiting" &&
+        !hasNavigatedRef.current
+      ) {
+        hasNavigatedRef.current = true;
+        if (countdownRef.current) {
+          clearInterval(countdownRef.current);
+        }
+        console.log(
+          "📊 [RoundScoreboard] State changed to waiting, navigating to lobby"
+        );
+        // Use centralized navigation
+        navigateToCorrectScreen(
+          navigation,
+          "waiting",
+          state.currentGame.category_chooser_id,
+          state.currentPlayer?.id,
+          state.currentPlayer?.is_host
+        );
+      }
+    }, [state.currentGame?.current_state, state.currentPlayer])
+  );
 
   // Cleanup on unmount
   useEffect(() => {

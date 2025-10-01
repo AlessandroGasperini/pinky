@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useGame } from "../contexts/GameContext";
 import { supabase } from "../services/supabase";
 import { navigationManager } from "../services/navigationManager";
@@ -97,28 +97,32 @@ export default function QuestionScreen() {
   };
 
   // BULLETPROOF VALIDATION - Only stay if state is question
-  useEffect(() => {
-    if (!state.currentGame || !state.currentPlayer) {
-      console.log("❓ [Question] No game or player, redirecting to landing");
-      navigation.navigate("Landing" as never);
-      return;
-    }
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!state.currentGame || !state.currentPlayer) {
+        console.log("❓ [Question] No game or player, redirecting to landing");
+        navigation.navigate("Landing" as never);
+        return;
+      }
 
-    // If not in question state, navigate to correct screen
-    if (state.currentGame.current_state !== "question") {
-      console.log("❓ [Question] State changed, navigating to correct screen");
-      navigateToCorrectScreen(
-        navigation,
-        state.currentGame.current_state,
-        state.currentGame.category_chooser_id,
-        state.currentPlayer.id,
-        state.currentPlayer.is_host
-      );
-      return;
-    }
+      // If not in question state, navigate to correct screen
+      if (state.currentGame.current_state !== "question") {
+        console.log(
+          "❓ [Question] State changed, navigating to correct screen"
+        );
+        navigateToCorrectScreen(
+          navigation,
+          state.currentGame.current_state,
+          state.currentGame.category_chooser_id,
+          state.currentPlayer.id,
+          state.currentPlayer.is_host
+        );
+        return;
+      }
 
-    console.log("❓ [Question] Staying in Question - correct state");
-  }, [state.currentGame?.current_state, state.currentPlayer]);
+      console.log("❓ [Question] Staying in Question - correct state");
+    }, [state.currentGame?.current_state, state.currentPlayer])
+  );
 
   // Reset everything when question changes
   useEffect(() => {
@@ -135,45 +139,56 @@ export default function QuestionScreen() {
     }
   }, [question?.id]);
 
-  // Simple timer - only runs when question exists and hasn't been answered
-  useEffect(() => {
-    if (!question || hasAnswered || hasNavigatedRef.current) return;
+  // FOCUS-BASED TIMER - Only runs when screen is focused and question exists
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!question || hasAnswered || hasNavigatedRef.current) return;
 
-    timerRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          // Time's up - navigate to results
-          if (!hasNavigatedRef.current) {
-            hasNavigatedRef.current = true;
-            if (timerRef.current) {
-              clearInterval(timerRef.current);
-            }
-            if (checkAnswersRef.current) {
-              clearInterval(checkAnswersRef.current);
-            }
-            console.log("❓ [Question] Time's up, moving to round scoreboard");
-            moveToRoundScoreboard().then(() => {
-              navigateToCorrectScreen(
-                navigation,
-                "round_scoreboard",
-                state.currentGame?.category_chooser_id,
-                state.currentPlayer?.id,
-                state.currentPlayer?.is_host
+      console.log("❓ [Question] Starting timer - screen is focused");
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            // Time's up - navigate to results
+            if (!hasNavigatedRef.current) {
+              hasNavigatedRef.current = true;
+              if (timerRef.current) {
+                clearInterval(timerRef.current);
+              }
+              if (checkAnswersRef.current) {
+                clearInterval(checkAnswersRef.current);
+              }
+              console.log(
+                "❓ [Question] Time's up, moving to round scoreboard"
               );
-            });
+              moveToRoundScoreboard().then(() => {
+                navigateToCorrectScreen(
+                  navigation,
+                  "round_scoreboard",
+                  state.currentGame?.category_chooser_id,
+                  state.currentPlayer?.id,
+                  state.currentPlayer?.is_host
+                );
+              });
+            }
+            return 0;
           }
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+          return prev - 1;
+        });
+      }, 1000);
 
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
-  }, [question?.id, hasAnswered]);
+      return () => {
+        console.log("❓ [Question] Cleaning up timer - screen lost focus");
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+        }
+      };
+    }, [
+      question?.id,
+      hasAnswered,
+      state.currentGame?.id,
+      state.currentPlayer?.id,
+    ])
+  );
 
   // Cleanup on unmount
   useEffect(() => {
@@ -228,7 +243,8 @@ export default function QuestionScreen() {
               "round_scoreboard",
               state.currentGame?.category_chooser_id,
               state.currentPlayer?.id,
-              state.currentPlayer?.is_host
+              state.currentPlayer?.is_host,
+              "Question"
             );
           });
         }

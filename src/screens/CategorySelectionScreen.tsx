@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useGame } from "../contexts/GameContext";
 import { navigationManager } from "../services/navigationManager";
 
@@ -12,53 +12,55 @@ export default function CategorySelectionScreen() {
   const [isSelecting, setIsSelecting] = useState(false);
 
   // BULLETPROOF VALIDATION - Only stay if state is category_selection and user is chooser
-  useEffect(() => {
-    if (!state.currentGame || !state.currentPlayer) {
-      console.log(
-        "🎯 [CategorySelection] No game or player, redirecting to landing"
-      );
-      navigation.navigate("Landing" as never);
-      return;
-    }
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!state.currentGame || !state.currentPlayer) {
+        console.log(
+          "🎯 [CategorySelection] No game or player, redirecting to landing"
+        );
+        navigation.navigate("Landing" as never);
+        return;
+      }
 
-    // If not in category_selection state, navigate to correct screen
-    if (state.currentGame.current_state !== "category_selection") {
-      console.log(
-        "🎯 [CategorySelection] State changed, navigating to correct screen"
-      );
-      navigateToCorrectScreen(
-        navigation,
-        state.currentGame.current_state,
-        state.currentGame.category_chooser_id,
-        state.currentPlayer.id,
-        state.currentPlayer.is_host
-      );
-      return;
-    }
+      // If not in category_selection state, navigate to correct screen
+      if (state.currentGame.current_state !== "category_selection") {
+        console.log(
+          "🎯 [CategorySelection] State changed, navigating to correct screen"
+        );
+        navigateToCorrectScreen(
+          navigation,
+          state.currentGame.current_state,
+          state.currentGame.category_chooser_id,
+          state.currentPlayer.id,
+          state.currentPlayer.is_host
+        );
+        return;
+      }
 
-    // If user is not the category chooser, navigate to waiting screen
-    if (state.currentGame.category_chooser_id !== state.currentPlayer.id) {
-      console.log(
-        "🎯 [CategorySelection] Not category chooser, navigating to waiting"
-      );
-      navigateToCorrectScreen(
-        navigation,
-        "category_selection",
-        state.currentGame.category_chooser_id,
-        state.currentPlayer.id,
-        state.currentPlayer.is_host
-      );
-      return;
-    }
+      // If user is not the category chooser, navigate to waiting screen
+      if (state.currentGame.category_chooser_id !== state.currentPlayer.id) {
+        console.log(
+          "🎯 [CategorySelection] Not category chooser, navigating to waiting"
+        );
+        navigateToCorrectScreen(
+          navigation,
+          "category_selection",
+          state.currentGame.category_chooser_id,
+          state.currentPlayer.id,
+          state.currentPlayer.is_host
+        );
+        return;
+      }
 
-    console.log(
-      "🎯 [CategorySelection] Staying in CategorySelection - correct state and user"
-    );
-  }, [
-    state.currentGame?.current_state,
-    state.currentGame?.category_chooser_id,
-    state.currentPlayer,
-  ]);
+      console.log(
+        "🎯 [CategorySelection] Staying in CategorySelection - correct state and user"
+      );
+    }, [
+      state.currentGame?.current_state,
+      state.currentGame?.category_chooser_id,
+      state.currentPlayer,
+    ])
+  );
 
   const handleCategorySelect = async (categoryId: string) => {
     if (isSelecting) return;

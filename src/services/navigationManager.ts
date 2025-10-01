@@ -103,7 +103,7 @@ class NavigationManager {
         currentPlayerId,
         isHost
       );
-    }, 300); // 300ms delay to ensure state is stable
+    }, 100); // Reduced delay for better responsiveness
   }
 
   private performNavigation(

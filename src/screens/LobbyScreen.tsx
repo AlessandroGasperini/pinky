@@ -10,7 +10,7 @@ import {
   Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useGame } from "../contexts/GameContext";
 import { navigationManager } from "../services/navigationManager";
 
@@ -27,41 +27,43 @@ export default function LobbyScreen() {
   } = useGame();
   const [refreshing, setRefreshing] = useState(false);
 
-  // BULLETPROOF NAVIGATION - Only navigate if state is NOT waiting
-  useEffect(() => {
-    if (!state.currentGame || !state.currentPlayer) {
-      console.log("🏠 [Lobby] No game or player, redirecting to landing");
-      navigation.navigate("Landing" as never);
-      return;
-    }
+  // BULLETPROOF NAVIGATION - Only navigate when screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!state.currentGame || !state.currentPlayer) {
+        console.log("🏠 [Lobby] No game or player, redirecting to landing");
+        navigation.navigate("Landing" as never);
+        return;
+      }
 
-    const currentState = state.currentGame.current_state;
+      const currentState = state.currentGame.current_state;
 
-    console.log("🏠 [Lobby] State check:", {
-      currentState,
-      isWaiting: currentState === "waiting",
-    });
+      console.log("🏠 [Lobby] State check:", {
+        currentState,
+        isWaiting: currentState === "waiting",
+      });
 
-    // If we're in waiting state, stay in lobby - this is the correct screen
-    if (currentState === "waiting") {
-      console.log("🏠 [Lobby] Staying in lobby - correct state");
-      return;
-    }
+      // If we're in waiting state, stay in lobby - this is the correct screen
+      if (currentState === "waiting") {
+        console.log("🏠 [Lobby] Staying in lobby - correct state");
+        return;
+      }
 
-    // For any other state, use centralized navigation
-    console.log("🏠 [Lobby] State changed, navigating to correct screen");
-    navigateToCorrectScreen(
-      navigation,
-      currentState,
-      state.currentGame.category_chooser_id,
-      state.currentPlayer.id,
-      state.currentPlayer.is_host
-    );
-  }, [
-    state.currentGame?.current_state,
-    state.currentGame?.category_chooser_id,
-    state.currentPlayer?.id,
-  ]);
+      // For any other state, use centralized navigation
+      console.log("🏠 [Lobby] State changed, navigating to correct screen");
+      navigateToCorrectScreen(
+        navigation,
+        currentState,
+        state.currentGame.category_chooser_id,
+        state.currentPlayer.id,
+        state.currentPlayer.is_host
+      );
+    }, [
+      state.currentGame?.current_state,
+      state.currentGame?.category_chooser_id,
+      state.currentPlayer?.id,
+    ])
+  );
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
