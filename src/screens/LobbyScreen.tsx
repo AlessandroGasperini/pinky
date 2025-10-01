@@ -141,6 +141,27 @@ export default function LobbyScreen() {
     }
   }, [state.players, state.currentGame?.id]);
 
+  const getLeadingPlayerInfo = () => {
+    if (state.players.length === 0) return null;
+
+    const sortedPlayers = [...state.players].sort((a, b) => {
+      const scoreA = scores[a.id] || 0;
+      const scoreB = scores[b.id] || 0;
+      return scoreB - scoreA;
+    });
+
+    const topScore = scores[sortedPlayers[0]?.id] || 0;
+    const playersWithTopScore = sortedPlayers.filter(
+      (player) => (scores[player.id] || 0) === topScore
+    );
+
+    if (playersWithTopScore.length === 1) {
+      return "Will " + playersWithTopScore[0].name + " bring it home?";
+    } else {
+      return "nailbiting ending...";
+    }
+  };
+
   const renderPlayerList = () => {
     const sortedPlayers = [...state.players].sort((a, b) => {
       const scoreA = scores[a.id] || 0;
@@ -208,8 +229,17 @@ export default function LobbyScreen() {
             Players: {state.players.length}/{state.currentGame.max_players}
           </Text> */}
           <Text style={styles.infoText}>
-            Get ready for round: {state.currentGame.current_round + 1} of{" "}
-            {state.currentGame.game_length}
+            {state.currentGame.current_round + 1 ===
+            state.currentGame.game_length - 1 ? (
+              <Text style={styles.infoText}>
+                Get ready for the final round! {getLeadingPlayerInfo()}
+              </Text>
+            ) : (
+              <Text style={styles.infoText}>
+                Get ready for round: {state.currentGame.current_round + 1} of{" "}
+                {state.currentGame.game_length}
+              </Text>
+            )}
           </Text>
           {/* <TouchableOpacity
             style={styles.refreshButton}
