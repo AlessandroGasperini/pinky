@@ -329,7 +329,7 @@ export default function LobbyScreen() {
         {isHost() && state.players.length < 2 && (
           <View style={styles.waitingContainer}>
             <Text style={styles.waitingText}>
-              Waiting for players... ({state.players.length}/2)
+              Waiting for players to join... ({state.players.length}/2)
             </Text>
           </View>
         )}
